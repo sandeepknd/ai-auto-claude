@@ -1,12 +1,12 @@
 # AI Agent - Intelligent Automation Platform
 
-A comprehensive AI-powered automation platform that combines natural language processing, document analysis, log analysis, calendar management, and GitHub PR review capabilities using LLaMA 3 and LangChain.
+A comprehensive AI-powered automation platform that combines natural language processing, document analysis, log analysis, calendar management, and GitHub PR review capabilities using Claude AI (Anthropic) and LangChain.
 
 ## 🚀 Overview
 
 This AI-assistant is designed to facilitate efficient machine learning model training (RAG-based, storing issues and resolutions in a local vector database), automate pull request reviews with detailed comments on code quality and optimization, manage Gmail calendar, compose and send/delete mail with voice-controlled instructions, and summarize logs/documents/reports.
 
-It uses Python (as the backend) wrapped in FastAPI and React as the Frontend.
+It uses **Claude AI** (Anthropic's state-of-the-art LLM) for fast, reliable, and intelligent responses. Python (as the backend) wrapped in FastAPI and React as the Frontend.
 
 ## 👁️ Preview
 <img width="1050" height="703" alt="image" src="https://github.com/user-attachments/assets/95ee41c5-5a9d-4bd0-a1f9-bf4b6cccee42" />
@@ -14,10 +14,11 @@ It uses Python (as the backend) wrapped in FastAPI and React as the Frontend.
 ## Features
 
 ### 🤖 AI Chat Agent
-- Natural language interface powered by LLaMA 3 (Ollama)
-- Context-aware conversations
+- Natural language interface powered by Claude AI (Anthropic)
+- Context-aware conversations with superior reasoning
 - Mathematical computation support
 - Document Q&A capabilities
+- Faster response times compared to local LLMs
 
 ### 📄 Document Analysis
 - Upload and analyze PDF and text documents
@@ -76,19 +77,20 @@ AI-python/
 ### System Requirements
 - Python 3.10+
 - Node.js 16+ (for frontend)
-- Ollama with LLaMA 3 model installed
+- Anthropic API Key (Claude AI)
 
-### Ollama Setup
-```bash
-# Install Ollama (if not already installed)
-curl -fsSL https://ollama.ai/install.sh | sh
+### Claude API Setup
+1. Create an Anthropic account at https://console.anthropic.com/
+2. Navigate to API Keys: https://console.anthropic.com/settings/keys
+3. Generate a new API key
+4. Copy the key for use in the `.env` file
 
-# Pull LLaMA 3 model
-ollama pull llama3
-
-# Pull embedding model for RAG
-ollama pull nomic-embed-text
-```
+**Why Claude instead of local LLMs?**
+- **10-100x faster** than local Ollama/LLaMA
+- **No GPU required** - runs entirely in the cloud
+- **Superior reasoning** and code understanding
+- **More reliable** responses with better formatting
+- **Lower resource usage** on your machine
 
 ## Installation
 
@@ -116,8 +118,12 @@ pip install -r requirements.txt
 
 3. Set up environment variables:
 ```bash
-# Create .env file
-echo "GITHUB_TOKEN=your_github_token_here" > .env
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your API keys:
+# ANTHROPIC_API_KEY=your_anthropic_api_key_here
+# GITHUB_TOKEN=your_github_token_here
 ```
 
 4. Configure Google OAuth:
@@ -264,7 +270,7 @@ curl -X POST http://localhost:8000/generate-comment \
 ### Backend
 - **FastAPI** - Modern web framework for APIs
 - **LangChain** - LLM orchestration framework
-- **Ollama** - Local LLM runtime (LLaMA 3)
+- **Claude AI (Anthropic)** - State-of-the-art LLM via API
 - **FAISS** - Vector similarity search
 - **Sentence Transformers** - Text embeddings
 - **Google API Client** - Calendar and Gmail integration
@@ -277,15 +283,16 @@ curl -X POST http://localhost:8000/generate-comment \
 - **React Icons** - Icon library
 
 ### AI/ML
-- **LLaMA 3** - Large language model
-- **nomic-embed-text** - Embedding model for RAG
-- **all-MiniLM-L6-v2** - Sentence similarity model
+- **Claude 3.5 Sonnet** - Latest Claude model for chat and reasoning
+- **all-MiniLM-L6-v2** - HuggingFace embedding model for RAG
+- **sentence-transformers** - Sentence similarity model
 
 ## Configuration
 
 ### Environment Variables
 ```bash
-GITHUB_TOKEN=your_github_personal_access_token
+ANTHROPIC_API_KEY=your_anthropic_api_key  # Required - Get from https://console.anthropic.com/
+GITHUB_TOKEN=your_github_personal_access_token  # Required for PR review
 HF_TOKEN=your_huggingface_token  # Optional, for higher rate limits
 ```
 
@@ -300,21 +307,24 @@ For Gmail integration:
 
 ## Troubleshooting
 
-### Ollama Connection Issues
+### Claude API Issues
 ```bash
-# Check if Ollama is running
-ollama list
+# Verify API key is set
+echo $ANTHROPIC_API_KEY
 
-# Restart Ollama service
-systemctl restart ollama  # Linux
-# or
-brew services restart ollama  # macOS
+# Test API connection
+python -c "from anthropic import Anthropic; client = Anthropic(); print('API key valid!')"
 ```
+
+### Common Errors
+**"API key not found"**: Make sure `ANTHROPIC_API_KEY` is set in your `.env` file
+
+**"Rate limit exceeded"**: Claude has usage limits - wait a moment or upgrade your plan
 
 ### Import Errors
 If you encounter LangChain import errors, ensure you have the correct packages:
 ```bash
-pip install --upgrade langchain langchain-community langchain-classic langchain-text-splitters
+pip install --upgrade anthropic langchain langchain-community langchain-text-splitters
 ```
 
 ### Port Already in Use
@@ -361,8 +371,8 @@ The project follows PEP 8 for Python and Prettier for JavaScript/React.
 
 ## Acknowledgments
 
+- Anthropic for Claude AI - the most capable AI assistant
 - LangChain for the excellent LLM framework
-- Ollama for local LLM deployment
 - FastAPI for the modern Python web framework
 - React community for the frontend ecosystem
 
@@ -372,4 +382,4 @@ For issues, questions, or contributions, please open an issue on GitHub.
 
 ---
 
-Built with ❤️ using LLaMA 3, LangChain, and FastAPI
+Built with ❤️ using Claude AI, LangChain, and FastAPI

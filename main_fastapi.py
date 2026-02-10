@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from math_ai_agent_doc import process_input, call_llama3  # import your function
+from math_ai_agent_doc import process_input, call_llama3  # import your function (now uses Claude)
 from fastapi import UploadFile, File
 from rag_log_analyzer import build_vectorstore, get_qa_chain, build_vectorstore_from_all_logs
 import os, shutil, json, pytz, requests, httpx
@@ -340,7 +340,7 @@ async def upload_file(file: UploadFile = File(...)):
     text = extract_text(file_path)
     analysis_prompt = f"Please summarize the following document:\n\n{text[:4000]}"  # limit size
 
-    #from math_ai_agent_doc import call_llama3  # or wherever your LLaMA3 call is defined
+    # Uses Claude API via call_llama3 wrapper
     summary = call_llama3(analysis_prompt)
 
     return {"summary": summary.strip()}
@@ -379,8 +379,8 @@ Now suggest the best resolution for the following new issue:
         prompt = f"""You are a helpful assistant. Suggest a resolution for the following issue:
 {user_query}"""
 
-    print ('LLAMA3 resp is {}'.format(prompt))
-    response = call_llama3(prompt)
+    print ('Claude resp is {}'.format(prompt))
+    response = call_llama3(prompt)  # Uses Claude via wrapper
     return response
 
 @app.post("/train-model")
@@ -469,7 +469,7 @@ def get_diff_from_github(owner, repo, pr_number, token):
     response = httpx.get(url, headers=headers)
     return response.text if response.status_code == 200 else ""
 
-def generate_comment_with_llama3(diff_text: str):
+def generate_comment_with_claude(diff_text: str):
     prompt = f"""
 You are a helpful code reviewer.
 
@@ -485,7 +485,7 @@ PR Diff:
 {diff_text}
 """
 
-    return call_llama3(prompt)
+    return call_llama3(prompt)  # Uses Claude via wrapper
 
 @app.post("/generate-comment")
 async def generate_comment(req: PRUrlRequest):
@@ -501,6 +501,6 @@ async def generate_comment(req: PRUrlRequest):
     if not diff.strip():
         return {"error": "Failed to retrieve PR diff"}
 
-    comment = generate_comment_with_llama3(diff)
+    comment = generate_comment_with_claude(diff)
     print (comment)
     return {"comment": comment}

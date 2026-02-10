@@ -1,5 +1,5 @@
-# ✅ Minimal LLaMA3 Tool-Calling Agent (No LangChain Agent)
-# Uses Ollama (LLaMA3) to parse natural language into JSON for tool execution
+# ✅ Claude-Powered Tool-Calling Agent
+# Uses Anthropic's Claude API for fast, reliable AI responses
 
 import json
 import subprocess
@@ -17,11 +17,10 @@ from datetime import datetime
 import dateparser
 from bs4 import BeautifulSoup
 
+# Import Claude client instead of Ollama
+from claude_client import call_claude
 
 import requests
-LLM_URL     = "http://localhost:11434"
-LLM_NAME = "llama3"
-#LLM_NAME = "gemma"
 # === STEP 1: Define local tools ===
 def add_numbers(numbers):
     print("[DEBUG] add_numbers() called")
@@ -64,10 +63,10 @@ def analyze_document(path):
     else:
         return "Unsupported file type. Only .txt and .pdf are supported."
 
-    # Send summary request to LLaMA3
+    # Send summary request to Claude
     print("[INFO] Sending document content for summarization...")
     prompt = f"Please summarize or analyze the following document content:\n{text[:4000]}"  # Truncate for safety
-    response = call_llama3(prompt)
+    response = call_claude(prompt)
     return response.strip()
 
 def send_email(to_address: str, subject: str, body: str):
@@ -193,7 +192,7 @@ def summarize_email(subject):
         body = get_email_body(service, msg_id)
         if not body:
             raise HTTPException(status_code=404, detail="Email has no readable body")
-        summary = call_llama3(f"Summarize the following email in a few sentences:\n\n{body}")
+        summary = call_claude(f"Summarize the following email in a few sentences:\n\n{body}")
         print (summary)
         return f"✅ {summary}"
     
@@ -255,21 +254,16 @@ tool_registry = {
     "analyze_document": analyze_document
 }
 
-# === STEP 3: Use LLaMA3 via Ollama to parse the user's intent ===
+# === STEP 3: Use Claude API to parse the user's intent ===
 def call_llama3(prompt):
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": LLM_NAME,
-            "prompt": prompt,
-            "stream": False
-        }
-    )
-    return response.json()["response"]
+    """
+    Backward compatibility wrapper - redirects to Claude API
+    """
+    return call_claude(prompt)
 
 # === STEP 4: Parse intent and execute tools manually ===
 def process_input(user_query):
-    print("\n[INFO] [process_input] Sending prompt to LLaMA3...")
+    print("\n[INFO] [process_input] Sending prompt to Claude...")
 
     resolved_date = resolve_relative_dates(user_query)
     today = datetime.now().strftime("%Y-%m-%d")
@@ -301,7 +295,7 @@ def process_input(user_query):
     output = call_llama3(full_prompt)
 
     try:
-        print(f"[DEBUG] LLaMA3 output: {output}")
+        print(f"[DEBUG] Claude output: {output}")
         tool_call = json.loads(output)
         tool_name = tool_call["tool"]
         args = tool_call["args"]
@@ -314,7 +308,7 @@ def process_input(user_query):
 
         elif tool_name is None:
             # Fallback to direct LLM response
-            print("[INFO] No tool used. Asking LLaMA3 directly for response...")
+            print("[INFO] No tool used. Asking Claude directly for response...")
             response = call_llama3(args.get("query", user_query))
             return f"{response}"
 
@@ -322,7 +316,7 @@ def process_input(user_query):
             return f"❌ Unknown tool: {tool_name}"
 
     except json.JSONDecodeError:
-        return "❌ Invalid JSON from LLaMA3. Falling back to chat mode:\n" + call_llama3(user_query)
+        return "❌ Invalid JSON from Claude. Falling back to chat mode:\n" + call_llama3(user_query)
 
     except Exception as e:
         return f"❌ Error while executing tool: {e}"
@@ -331,7 +325,7 @@ def process_input(user_query):
 # === CLI Entry Point ===
 if __name__ == "__main__":
     '''
-    print("🤖 LLaMA3 Tool Executor (no LangChain)")
+    print("🤖 Claude Tool Executor")
     while True:
         user_input = input("\n🧠 Your query (or 'exit'): ")
         if user_input.strip().lower() in ["exit", "quit"]:
