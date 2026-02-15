@@ -3,8 +3,10 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.22
 
-# Claude API (Anthropic)
-anthropic==0.39.0
+# Claude CLI (Anthropic)
+# NOTE: Instead of the Python API, this project now uses the Claude CLI
+# Install Claude CLI: https://github.com/anthropics/claude-code
+# The 'anthropic' package is no longer required
 
 # LangChain & AI
 langchain==0.3.0

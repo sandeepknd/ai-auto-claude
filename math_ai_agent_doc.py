@@ -17,8 +17,8 @@ from datetime import datetime
 import dateparser
 from bs4 import BeautifulSoup
 
-# Import Claude client instead of Ollama
-from claude_client import call_claude
+# Import Claude CLI client instead of Claude API
+from claude_cli_client import call_claude
 
 import requests
 # === STEP 1: Define local tools ===

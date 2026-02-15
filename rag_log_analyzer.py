@@ -8,8 +8,8 @@ from typing import Any, List, Optional
 from pydantic import Field
 import os
 
-# Import Claude client
-from claude_client import call_claude
+# Import Claude CLI client
+from claude_cli_client import call_claude
 
 
 # Custom LangChain LLM wrapper for Claude

@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from math_ai_agent_doc import process_input, call_llama3  # import your function (now uses Claude)
+from math_ai_agent_doc import process_input, call_llama3  # import your function (now uses Claude CLI)
 from fastapi import UploadFile, File
 from rag_log_analyzer import build_vectorstore, get_qa_chain, build_vectorstore_from_all_logs
 import os, shutil, json, pytz, requests, httpx

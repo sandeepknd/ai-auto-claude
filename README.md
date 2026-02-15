@@ -77,19 +77,39 @@ AI-python/
 ### System Requirements
 - Python 3.10+
 - Node.js 16+ (for frontend)
-- Anthropic API Key (Claude AI)
+- Claude CLI (Claude Code) - Command-line interface for Claude AI
 
-### Claude API Setup
-1. Create an Anthropic account at https://console.anthropic.com/
-2. Navigate to API Keys: https://console.anthropic.com/settings/keys
-3. Generate a new API key
-4. Copy the key for use in the `.env` file
+### Claude CLI Setup
+This application now uses the **Claude CLI** instead of the Claude API for better integration and ease of use.
 
-**Why Claude instead of local LLMs?**
+1. **Install Claude CLI:**
+   ```bash
+   # Using npm (recommended)
+   npm install -g @anthropic-ai/claude-code
+
+   # Verify installation
+   claude --version
+   ```
+
+2. **Authenticate with Claude:**
+   ```bash
+   # Sign in to Claude CLI
+   claude auth login
+
+   # Test the connection
+   claude chat -m "Hello, Claude!"
+   ```
+
+3. **Important Note:**
+   - If running inside a Claude Code session, you'll need to unset the `CLAUDECODE` environment variable when starting your backend
+   - The backend will automatically handle this in most cases
+
+**Why Claude CLI instead of local LLMs or API?**
 - **10-100x faster** than local Ollama/LLaMA
 - **No GPU required** - runs entirely in the cloud
 - **Superior reasoning** and code understanding
 - **More reliable** responses with better formatting
+- **No API key management** - authentication handled by CLI
 - **Lower resource usage** on your machine
 
 ## Installation
@@ -111,22 +131,30 @@ git clone https://github.com/sandeepknd/AI-agents.git
 cd AI-agents
 ```
 
-2. Install Python dependencies:
+2. Install Claude CLI (if not already installed):
+```bash
+npm install -g @anthropic-ai/claude-code
+claude auth login
+```
+
+3. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables:
+4. Set up environment variables:
 ```bash
-# Copy the example file
-cp .env.example .env
+# Copy the example file (if it exists)
+cp .env.example .env 2>/dev/null || touch .env
 
-# Edit .env and add your API keys:
-# ANTHROPIC_API_KEY=your_anthropic_api_key_here
-# GITHUB_TOKEN=your_github_token_here
+# Edit .env and add your tokens:
+# GITHUB_TOKEN=your_github_token_here (required for PR review)
+# HF_TOKEN=your_huggingface_token (optional, for better rate limits)
+#
+# NOTE: ANTHROPIC_API_KEY is NO LONGER NEEDED - we use Claude CLI instead
 ```
 
-4. Configure Google OAuth:
+5. Configure Google OAuth:
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a project and enable Google Calendar API and Gmail API
    - Create OAuth 2.0 credentials
@@ -147,12 +175,18 @@ npm install
 
 ```bash
 # From the root directory
+# If running OUTSIDE Claude Code session:
 uvicorn main_fastapi:app --reload --host 0.0.0.0 --port 8000
+
+# If running INSIDE Claude Code session (unset CLAUDECODE variable):
+unset CLAUDECODE && uvicorn main_fastapi:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at:
 - API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
+
+**Note:** The first request may take a few seconds as the Claude CLI initializes.
 
 ### Start Frontend
 
@@ -270,7 +304,7 @@ curl -X POST http://localhost:8000/generate-comment \
 ### Backend
 - **FastAPI** - Modern web framework for APIs
 - **LangChain** - LLM orchestration framework
-- **Claude AI (Anthropic)** - State-of-the-art LLM via API
+- **Claude CLI (Anthropic)** - State-of-the-art LLM via command-line interface
 - **FAISS** - Vector similarity search
 - **Sentence Transformers** - Text embeddings
 - **Google API Client** - Calendar and Gmail integration
@@ -291,9 +325,12 @@ curl -X POST http://localhost:8000/generate-comment \
 
 ### Environment Variables
 ```bash
-ANTHROPIC_API_KEY=your_anthropic_api_key  # Required - Get from https://console.anthropic.com/
+# .env file configuration
 GITHUB_TOKEN=your_github_personal_access_token  # Required for PR review
 HF_TOKEN=your_huggingface_token  # Optional, for higher rate limits
+
+# NOTE: ANTHROPIC_API_KEY is NO LONGER needed
+# Authentication is handled by Claude CLI (claude auth login)
 ```
 
 ### Calendar OAuth Scopes
@@ -307,24 +344,63 @@ For Gmail integration:
 
 ## Troubleshooting
 
-### Claude API Issues
-```bash
-# Verify API key is set
-echo $ANTHROPIC_API_KEY
+### Claude CLI Issues
 
-# Test API connection
-python -c "from anthropic import Anthropic; client = Anthropic(); print('API key valid!')"
+**Test Claude CLI connection:**
+```bash
+# Check if Claude CLI is installed
+claude --version
+
+# Test basic functionality
+claude chat -m "Hello, Claude!"
+
+# Check authentication status
+claude auth status
 ```
 
 ### Common Errors
-**"API key not found"**: Make sure `ANTHROPIC_API_KEY` is set in your `.env` file
 
-**"Rate limit exceeded"**: Claude has usage limits - wait a moment or upgrade your plan
+**"Claude CLI command 'claude' not found"**
+```bash
+# Install Claude CLI
+npm install -g @anthropic-ai/claude-code
+
+# Check if it's in PATH
+which claude
+
+# If not in PATH, add to your shell profile (~/.bashrc or ~/.zshrc):
+export PATH="$PATH:$HOME/.npm-global/bin"
+```
+
+**"Cannot be launched inside another Claude Code session"**
+```bash
+# When starting the backend, unset the environment variable:
+unset CLAUDECODE && uvicorn main_fastapi:app --reload --host 0.0.0.0 --port 8000
+```
+
+**"Authentication failed" or "Not logged in"**
+```bash
+# Re-authenticate with Claude CLI
+claude auth logout
+claude auth login
+```
+
+**"Timeout" or "Slow responses"**
+- First request may take longer (5-10 seconds) as CLI initializes
+- Subsequent requests should be faster (1-3 seconds)
+- Check your internet connection
 
 ### Import Errors
 If you encounter LangChain import errors, ensure you have the correct packages:
 ```bash
-pip install --upgrade anthropic langchain langchain-community langchain-text-splitters
+pip install --upgrade langchain langchain-community langchain-text-splitters
+```
+
+### Testing the Integration
+Run the test script to verify Claude CLI integration:
+```bash
+# From the project root
+python test_claude_cli.py
 ```
 
 ### Port Already in Use
@@ -353,10 +429,11 @@ The project follows PEP 8 for Python and Prettier for JavaScript/React.
 
 ## Security Considerations
 
-1. **API Keys**: Never commit `credentials_*.json`, `token.json`, or `.env` files
+1. **Credentials**: Never commit `credentials_*.json`, `token.json`, or `.env` files to version control
 2. **OAuth Tokens**: Tokens are stored locally in `token.json` and `token_mail.pickle`
 3. **GitHub Token**: Store in environment variable or `.env` file
-4. **CORS**: Frontend is restricted to `http://localhost:3000` in production
+4. **Claude Authentication**: Managed by Claude CLI - credentials stored in `~/.claude/`
+5. **CORS**: Frontend is restricted to `http://localhost:3000` in production
 
 ## Contributing
 
