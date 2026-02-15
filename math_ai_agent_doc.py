@@ -324,12 +324,10 @@ def process_input(user_query):
 
 # === CLI Entry Point ===
 if __name__ == "__main__":
-    '''
     print("🤖 Claude Tool Executor")
     while True:
         user_input = input("\n🧠 Your query (or 'exit'): ")
         if user_input.strip().lower() in ["exit", "quit"]:
             break
         process_input(user_input)
-    '''
-    print(summarize_email("unique test competition"))
+    #print(summarize_email("unique test competition"))

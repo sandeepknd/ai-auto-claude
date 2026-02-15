@@ -2,8 +2,6 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
-from langchain.chains import RetrievalQA
-from langchain.llms.base import LLM
 from typing import Any, List, Optional
 from pydantic import Field
 import os
@@ -12,29 +10,34 @@ import os
 from claude_cli_client import call_claude
 
 
-# Custom LangChain LLM wrapper for Claude
-class ClaudeLLM(LLM):
-    """Custom LangChain LLM wrapper for Claude API"""
+# Simple RAG Chain class that doesn't use deprecated RetrievalQA
+class SimpleRAGChain:
+    """Simple RAG chain using Claude CLI"""
 
-    model_name: str = Field(default="claude-3-5-sonnet-20241022")
+    def __init__(self, retriever):
+        self.retriever = retriever
 
-    @property
-    def _llm_type(self) -> str:
-        return "claude"
+    def run(self, query: str) -> str:
+        """Run the RAG chain"""
+        # Retrieve relevant documents
+        docs = self.retriever.get_relevant_documents(query)
 
-    def _call(
-        self,
-        prompt: str,
-        stop: Optional[List[str]] = None,
-        **kwargs: Any,
-    ) -> str:
-        """Call Claude API"""
-        return call_claude(prompt)
+        # Format context from retrieved documents
+        context = "\n\n".join([doc.page_content for doc in docs])
 
-    @property
-    def _identifying_params(self):
-        """Return identifying parameters"""
-        return {"model_name": self.model_name}
+        # Create prompt for Claude
+        prompt = f"""Based on the following log excerpts, answer the question.
+
+Log Context:
+{context}
+
+Question: {query}
+
+Please provide a detailed answer based on the log information above."""
+
+        # Call Claude
+        response = call_claude(prompt)
+        return response
 
 
 # Load logs and embed
@@ -89,10 +92,9 @@ def get_qa_chain():
     db = FAISS.load_local("embeddings", embeddings, allow_dangerous_deserialization=True)
 
     retriever = db.as_retriever(search_kwargs={"k": 3})
-    # Use Claude via custom LLM wrapper
-    llm = ClaudeLLM()
 
-    chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
+    # Use simple RAG chain instead of deprecated RetrievalQA
+    chain = SimpleRAGChain(retriever)
     return chain
 
 

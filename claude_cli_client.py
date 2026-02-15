@@ -38,42 +38,33 @@ def call_claude_cli(
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
 
-        # Create a temporary file with the prompt
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
-            temp_file.write(full_prompt)
-            temp_file_path = temp_file.name
+        # Unset CLAUDECODE to avoid nested session errors
+        env = os.environ.copy()
+        env.pop('CLAUDECODE', None)
 
-        try:
-            # Build the Claude CLI command
-            cmd = [
-                CLAUDE_CLI_COMMAND,
-                "chat",
-                "--model", model,
-                "--message", full_prompt
-            ]
+        # Build the Claude CLI command
+        # Note: Claude CLI doesn't support --model flag in chat mode
+        cmd = [CLAUDE_CLI_COMMAND, "chat"]
 
-            # Execute the command
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False
-            )
+        # Execute the command with prompt via stdin
+        result = subprocess.run(
+            cmd,
+            input=full_prompt,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env=env
+        )
 
-            if result.returncode != 0:
-                error_msg = result.stderr.strip() if result.stderr else "Unknown error"
-                print(f"[ERROR] Claude CLI failed: {error_msg}")
-                return f"Error calling Claude CLI: {error_msg}"
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            print(f"[ERROR] Claude CLI failed: {error_msg}")
+            return f"Error calling Claude CLI: {error_msg}"
 
-            # Extract and return the response
-            response = result.stdout.strip()
-            return response
-
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
+        # Extract and return the response
+        response = result.stdout.strip()
+        return response
 
     except subprocess.TimeoutExpired:
         return f"Error: Claude CLI timed out after {timeout} seconds"
@@ -96,6 +87,10 @@ def call_claude_cli_interactive(prompt: str, timeout: int = DEFAULT_TIMEOUT) -> 
         The text response from Claude CLI
     """
     try:
+        # Unset CLAUDECODE to avoid nested session errors
+        env = os.environ.copy()
+        env.pop('CLAUDECODE', None)
+
         # Build the Claude CLI command
         cmd = [CLAUDE_CLI_COMMAND, "chat"]
 
@@ -106,7 +101,8 @@ def call_claude_cli_interactive(prompt: str, timeout: int = DEFAULT_TIMEOUT) -> 
             capture_output=True,
             text=True,
             timeout=timeout,
-            check=False
+            check=False,
+            env=env
         )
 
         if result.returncode != 0:
@@ -129,7 +125,7 @@ def call_claude_cli_interactive(prompt: str, timeout: int = DEFAULT_TIMEOUT) -> 
 
 def call_claude_cli_simple(prompt: str) -> str:
     """
-    Simplified Claude CLI call using direct message flag.
+    Simplified Claude CLI call using stdin.
     This is the most straightforward approach.
 
     Args:
@@ -139,33 +135,33 @@ def call_claude_cli_simple(prompt: str) -> str:
         The text response from Claude CLI
     """
     try:
-        # Execute claude command with the prompt
+        # Unset CLAUDECODE to avoid nested session errors
+        env = os.environ.copy()
+        env.pop('CLAUDECODE', None)
+
+        # Execute claude command with prompt via stdin
         result = subprocess.run(
-            [CLAUDE_CLI_COMMAND, "chat", "-m", prompt],
+            [CLAUDE_CLI_COMMAND, "chat"],
+            input=prompt,
             capture_output=True,
             text=True,
             timeout=DEFAULT_TIMEOUT,
-            check=False
+            check=False,
+            env=env
         )
 
         if result.returncode != 0:
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
             print(f"[ERROR] Claude CLI failed: {error_msg}")
-            # Fallback: try without -m flag
-            result = subprocess.run(
-                [CLAUDE_CLI_COMMAND, "chat"],
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=DEFAULT_TIMEOUT,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error calling Claude CLI: {error_msg}"
+            return f"Error calling Claude CLI: {error_msg}"
 
         # Return the response
         return result.stdout.strip()
 
+    except subprocess.TimeoutExpired:
+        return f"Error: Claude CLI timed out after {DEFAULT_TIMEOUT} seconds"
+    except FileNotFoundError:
+        return f"Error: Claude CLI command '{CLAUDE_CLI_COMMAND}' not found. Make sure it's installed and in PATH."
     except Exception as e:
         print(f"[ERROR] Claude CLI call failed: {str(e)}")
         return f"Error calling Claude CLI: {str(e)}"
