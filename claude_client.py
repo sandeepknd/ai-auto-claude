@@ -137,10 +137,18 @@ def call_claude_streaming(prompt: str, system_prompt: str = None):
         yield f"Error: {str(e)}"
 
 
-# Backward compatibility - alias to match existing call_llama3 function
+# Main LLM function - generic name for flexibility
+def call_llm(prompt: str) -> str:
+    """
+    Main LLM calling function.
+    Uses Claude API for inference.
+    """
+    return call_claude(prompt)
+
+# Backward compatibility alias
 def call_llama3(prompt: str) -> str:
     """
     Backward compatibility wrapper.
-    Replaces the old Ollama call_llama3 with Claude API.
+    Deprecated: Use call_llm() instead.
     """
-    return call_claude(prompt)
+    return call_llm(prompt)

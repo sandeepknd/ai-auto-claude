@@ -195,13 +195,21 @@ def call_claude_cli_simple(prompt: str) -> str:
         return f"Error calling Claude CLI: {str(e)}"
 
 
-# Backward compatibility - alias to match existing call_llama3 function
+# Main LLM function - generic name for flexibility
+def call_llm(prompt: str) -> str:
+    """
+    Main LLM calling function.
+    Uses Claude CLI for inference.
+    """
+    return call_claude_cli_simple(prompt)
+
+# Backward compatibility alias
 def call_llama3(prompt: str) -> str:
     """
     Backward compatibility wrapper.
-    Replaces the old Ollama call_llama3 with Claude CLI.
+    Deprecated: Use call_llm() instead.
     """
-    return call_claude_cli_simple(prompt)
+    return call_llm(prompt)
 
 
 def call_claude(

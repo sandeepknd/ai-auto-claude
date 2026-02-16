@@ -3,7 +3,8 @@ from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from math_ai_agent_doc import process_input, call_llama3  # import your function (now uses Claude CLI)
+from math_ai_agent_doc import process_input  # import your function (now uses Claude CLI)
+from claude_cli_client import call_llm
 from fastapi import UploadFile, File
 from rag_log_analyzer import build_vectorstore, get_qa_chain, build_vectorstore_from_all_logs
 import os, shutil, json, pytz, requests, httpx
@@ -340,8 +341,8 @@ async def upload_file(file: UploadFile = File(...)):
     text = extract_text(file_path)
     analysis_prompt = f"Please summarize the following document:\n\n{text[:4000]}"  # limit size
 
-    # Uses Claude API via call_llama3 wrapper
-    summary = call_llama3(analysis_prompt)
+    # Uses Claude API via call_llm wrapper
+    summary = call_llm(analysis_prompt)
 
     return {"summary": summary.strip()}
 
@@ -380,7 +381,7 @@ Now suggest the best resolution for the following new issue:
 {user_query}"""
 
     print ('Claude resp is {}'.format(prompt))
-    response = call_llama3(prompt)  # Uses Claude via wrapper
+    response = call_llm(prompt)  # Uses Claude via wrapper
     return response
 
 @app.post("/train-model")
@@ -485,7 +486,7 @@ PR Diff:
 {diff_text}
 """
 
-    return call_llama3(prompt)  # Uses Claude via wrapper
+    return call_llm(prompt)  # Uses Claude via wrapper
 
 @app.post("/generate-comment")
 async def generate_comment(req: PRUrlRequest):

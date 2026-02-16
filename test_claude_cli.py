@@ -3,7 +3,7 @@
 Test script to verify Claude CLI integration
 """
 
-from claude_cli_client import call_claude, call_llama3, test_claude_cli
+from claude_cli_client import call_claude, call_llm, call_llama3, test_claude_cli
 
 def main():
     print("=" * 60)
@@ -24,14 +24,20 @@ def main():
     print(f"Query: What is 15 + 27?")
     print(f"Response: {response}")
 
-    # Test 3: Backward compatibility with call_llama3
-    print("\n[Test 3] Testing backward compatibility (call_llama3)...")
-    response = call_llama3("Name one programming language. Just the name.")
+    # Test 3: Main LLM function (call_llm)
+    print("\n[Test 3] Testing main LLM function (call_llm)...")
+    response = call_llm("Name one programming language. Just the name.")
     print(f"Query: Name one programming language")
     print(f"Response: {response}")
 
-    # Test 4: System prompt simulation
-    print("\n[Test 4] Testing with system prompt...")
+    # Test 4: Backward compatibility with call_llama3
+    print("\n[Test 4] Testing backward compatibility (call_llama3)...")
+    response = call_llama3("What is Python? Answer in one sentence.")
+    print(f"Query: What is Python?")
+    print(f"Response: {response}")
+
+    # Test 5: System prompt simulation
+    print("\n[Test 5] Testing with system prompt...")
     system = "You are a helpful assistant that answers in one short sentence."
     prompt = "Why is the sky blue?"
     full_prompt = f"{system}\n\n{prompt}"

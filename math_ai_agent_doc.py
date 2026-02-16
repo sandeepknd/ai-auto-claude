@@ -18,7 +18,7 @@ import dateparser
 from bs4 import BeautifulSoup
 
 # Import Claude CLI client instead of Claude API
-from claude_cli_client import call_claude
+from claude_cli_client import call_llm
 
 import requests
 # === STEP 1: Define local tools ===
@@ -254,12 +254,8 @@ tool_registry = {
     "analyze_document": analyze_document
 }
 
-# === STEP 3: Use Claude API to parse the user's intent ===
-def call_llama3(prompt):
-    """
-    Backward compatibility wrapper - redirects to Claude API
-    """
-    return call_claude(prompt)
+# === STEP 3: Use LLM to parse the user's intent ===
+# Note: Direct calls now use call_llm from claude_cli_client
 
 # === STEP 4: Parse intent and execute tools manually ===
 def process_input(user_query):
@@ -292,7 +288,7 @@ def process_input(user_query):
     )
 
     full_prompt = system_prompt + f"\nUser: {user_query}\n"
-    output = call_llama3(full_prompt)
+    output = call_llm(full_prompt)
 
     try:
         print(f"[DEBUG] Claude output: {output}")
@@ -322,14 +318,14 @@ def process_input(user_query):
         elif tool_name is None:
             # Fallback to direct LLM response
             print("[INFO] No tool used. Asking Claude directly for response...")
-            response = call_llama3(args.get("query", user_query))
+            response = call_llm(args.get("query", user_query))
             return f"{response}"
 
         else:
             return f"❌ Unknown tool: {tool_name}"
 
     except json.JSONDecodeError:
-        return "❌ Invalid JSON from Claude. Falling back to chat mode:\n" + call_llama3(user_query)
+        return "❌ Invalid JSON from Claude. Falling back to chat mode:\n" + call_llm(user_query)
 
     except Exception as e:
         return f"❌ Error while executing tool: {e}"
