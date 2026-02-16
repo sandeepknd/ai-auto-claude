@@ -2,9 +2,14 @@
 # Uses Anthropic's Claude API for fast, reliable AI responses
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from PyPDF2 import PdfReader
 import smtplib
 from email.message import EmailMessage
@@ -44,8 +49,87 @@ def divide(a, b):
     return a / b
 
 def get_weather(city):
+    """
+    Get real-time weather data for a city using wttr.in free weather service.
+    No API key required!
+
+    Args:
+        city: City name (e.g., "Paris", "New York", "London")
+
+    Returns:
+        Formatted weather information string
+    """
     print(f"[DEBUG] get_weather() called with city={city}")
-    return f"The weather in {city} is 25°C and sunny (hardcoded)"
+
+    try:
+        # wttr.in API endpoint (completely free, no API key required!)
+        # Format: wttr.in/{city}?format=j1 for JSON output
+        base_url = f"https://wttr.in/{city}"
+
+        # Parameters for the API request
+        params = {
+            "format": "j1"  # JSON format
+        }
+
+        # Headers to identify as a script/bot (recommended by wttr.in)
+        headers = {
+            "User-Agent": "curl/7.68.0"
+        }
+
+        # Make the API request
+        response = requests.get(base_url, params=params, headers=headers, timeout=10)
+
+        # Check if request was successful
+        if response.status_code == 404:
+            return f"❌ City '{city}' not found. Please check the spelling."
+
+        if response.status_code != 200:
+            return f"❌ Weather service error (Status: {response.status_code})"
+
+        # Parse the JSON response
+        data = response.json()
+
+        # Extract current weather information
+        current = data["current_condition"][0]
+        location = data["nearest_area"][0]
+
+        # Get location details
+        area_name = location["areaName"][0]["value"]
+        country = location["country"][0]["value"]
+
+        # Get weather details
+        temp_c = current["temp_C"]
+        feels_like_c = current["FeelsLikeC"]
+        humidity = current["humidity"]
+        description = current["weatherDesc"][0]["value"]
+        wind_speed_kmph = current["windspeedKmph"]
+        wind_dir = current["winddir16Point"]
+        pressure = current["pressure"]
+        visibility = current["visibility"]
+
+        # Format the response
+        weather_info = (
+            f"🌤️ Weather in {area_name}, {country}:\n"
+            f"  Temperature: {temp_c}°C (feels like {feels_like_c}°C)\n"
+            f"  Condition: {description}\n"
+            f"  Humidity: {humidity}%\n"
+            f"  Wind: {wind_speed_kmph} km/h {wind_dir}\n"
+            f"  Pressure: {pressure} mb\n"
+            f"  Visibility: {visibility} km"
+        )
+
+        return weather_info
+
+    except requests.exceptions.Timeout:
+        return f"❌ Weather service timeout. Please try again."
+    except requests.exceptions.ConnectionError:
+        return f"❌ Cannot connect to weather service. Check your internet connection."
+    except KeyError as e:
+        print(f"[ERROR] Unexpected weather data format: {str(e)}")
+        return f"❌ City '{city}' not found or weather data unavailable."
+    except Exception as e:
+        print(f"[ERROR] Weather API error: {str(e)}")
+        return f"❌ Error fetching weather data: {str(e)}"
 
 def analyze_document(path):
     print(f"[DEBUG] analyze_document() called with path={path}")
