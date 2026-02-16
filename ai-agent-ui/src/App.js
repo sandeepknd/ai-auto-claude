@@ -78,7 +78,7 @@ function App() {
         ...prev,
         {
           type: "bot",
-          text: data.response || "🤖 No response.",
+          text: String(data.response ?? "🤖 No response."),
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
@@ -127,7 +127,7 @@ function App() {
         ...prev,
         {
           type: "bot",
-          text: data.response || "🤖 No response.",
+          text: String(data.response ?? "🤖 No response."),
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
@@ -336,7 +336,7 @@ if (activeTab === "Calendar") {
           ...prev,
           {
             type: "bot",
-            text: data.summary || "✅ File uploaded.",
+            text: String(data.summary ?? "✅ File uploaded."),
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
@@ -542,7 +542,7 @@ if (activeTab === "Calendar") {
 	      <div className="bg-red-500 text-white text-xs font-bold w-full text-center rounded-t-lg">
 	      {new Date().toLocaleString("default", { month: "short" }).toUpperCase()}
 	      </div>
-	      <div className="text-lg font-bold text-gray-800">{new Date().getDate()}</div>
+	      <div className="text-lg font-bold text-gray-800">{String(new Date().getDate())}</div>
 	      </div>
 	      {/* Heading */}
 	      <h2 className="text-2xl font-bold text-purple-700">Google Calendar</h2>
@@ -610,7 +610,7 @@ if (activeTab === "Calendar") {
           {/* Calendar Icon */}
           <div className="w-14 h-14 bg-white shadow-md rounded-lg flex flex-col items-center justify-center border border-gray-300">
 	      <span className="bg-red-500 text-white text-xs font-bold w-full text-center rounded-t-lg uppercase">{month}</span>
-	      <span className="text-lg font-bold text-gray-800">{day}</span>
+	      <span className="text-lg font-bold text-gray-800">{String(day)}</span>
           </div>
 
           {/* Event Details */}
