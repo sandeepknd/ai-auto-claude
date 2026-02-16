@@ -57,13 +57,22 @@ def call_claude_cli(
             env=env
         )
 
+        # Check if we got a valid response in stdout
+        response = result.stdout.strip()
+
+        # If there's a valid response, return it even if return code is non-zero
+        # (Claude CLI sometimes returns non-zero with warnings but still produces output)
+        if response:
+            if result.stderr:
+                print(f"[WARNING] Claude CLI stderr: {result.stderr.strip()}")
+            return response
+
+        # Only treat as error if we have no response
         if result.returncode != 0:
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
             print(f"[ERROR] Claude CLI failed: {error_msg}")
             return f"Error calling Claude CLI: {error_msg}"
 
-        # Extract and return the response
-        response = result.stdout.strip()
         return response
 
     except subprocess.TimeoutExpired:
@@ -105,13 +114,22 @@ def call_claude_cli_interactive(prompt: str, timeout: int = DEFAULT_TIMEOUT) -> 
             env=env
         )
 
+        # Check if we got a valid response in stdout
+        response = result.stdout.strip()
+
+        # If there's a valid response, return it even if return code is non-zero
+        # (Claude CLI sometimes returns non-zero with warnings but still produces output)
+        if response:
+            if result.stderr:
+                print(f"[WARNING] Claude CLI stderr: {result.stderr.strip()}")
+            return response
+
+        # Only treat as error if we have no response
         if result.returncode != 0:
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
             print(f"[ERROR] Claude CLI failed: {error_msg}")
             return f"Error calling Claude CLI: {error_msg}"
 
-        # Extract and return the response
-        response = result.stdout.strip()
         return response
 
     except subprocess.TimeoutExpired:
@@ -150,13 +168,23 @@ def call_claude_cli_simple(prompt: str) -> str:
             env=env
         )
 
+        # Check if we got a valid response in stdout
+        response = result.stdout.strip()
+
+        # If there's a valid response, return it even if return code is non-zero
+        # (Claude CLI sometimes returns non-zero with warnings but still produces output)
+        if response:
+            if result.stderr:
+                print(f"[WARNING] Claude CLI stderr: {result.stderr.strip()}")
+            return response
+
+        # Only treat as error if we have no response
         if result.returncode != 0:
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
             print(f"[ERROR] Claude CLI failed: {error_msg}")
             return f"Error calling Claude CLI: {error_msg}"
 
-        # Return the response
-        return result.stdout.strip()
+        return response
 
     except subprocess.TimeoutExpired:
         return f"Error: Claude CLI timed out after {DEFAULT_TIMEOUT} seconds"

@@ -70,6 +70,12 @@ GIT DIFF:
 """
         comment = call_llama3(prompt)
         print("\n--- LLM Generated PR Comment ---\n", comment)
+
+        # Check if the LLM call failed
+        if comment.startswith("Error calling Claude CLI:") or comment.startswith("Error:"):
+            print(f"❌ Failed to generate PR review comment: {comment}")
+            raise Exception(f"LLM failed to generate comment: {comment}")
+
         # Call GitHub API to post comment
         pr_num = pr_url.split('/')[-1]
         post_comment_to_github(pr_num, comment, "openshift/openshift-tests-private",token)
