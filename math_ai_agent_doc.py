@@ -296,6 +296,19 @@ def process_input(user_query):
 
     try:
         print(f"[DEBUG] Claude output: {output}")
+
+        # Strip markdown code fences if present
+        output = output.strip()
+        if output.startswith("```"):
+            # Remove opening fence (```json or ```)
+            lines = output.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            # Remove closing fence
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            output = "\n".join(lines).strip()
+
         tool_call = json.loads(output)
         tool_name = tool_call["tool"]
         args = tool_call["args"]
@@ -329,5 +342,7 @@ if __name__ == "__main__":
         user_input = input("\n🧠 Your query (or 'exit'): ")
         if user_input.strip().lower() in ["exit", "quit"]:
             break
-        process_input(user_input)
+        result = process_input(user_input)
+        if result:
+            print(f"\n📤 Result: {result}")
     #print(summarize_email("unique test competition"))
