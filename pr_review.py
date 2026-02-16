@@ -82,24 +82,61 @@ async def handle_pull_request(repo_url, branch, pr_url):
         print(f"[INFO] Diff: {len(diff_output.split(chr(10)))} lines -> {len(diff_output_truncated.split(chr(10)))} lines")
 
         prompt = f"""
-Analyze this Golang PR for:
-- Code quality
-- Error handling
-- Logging
-- Edge cases
-- Testing (if present)
-- Best practices
+You are a senior Golang code reviewer. Analyze this PR and provide a DETAILED, SPECIFIC review with exact file paths and line numbers for each issue.
 
-GOLINT:
+GOLINT REPORT:
 {lint_report_truncated}
 
-GOVET:
+GOVET REPORT:
 {vet_report_truncated}
 
 GIT DIFF:
 {diff_output_truncated}
 
-Please provide a concise review focusing on the most important issues.
+INSTRUCTIONS:
+1. Review each file changed in the diff
+2. For EACH issue found, specify:
+   - Exact file path and line number (e.g., "pkg/controller/main.go:45")
+   - The problematic code snippet
+   - What's wrong and why
+   - Suggested fix with code example
+
+3. Focus on:
+   - Golint/govet issues (reference the reports above)
+   - Error handling problems (unchecked errors, improper error wrapping)
+   - Resource leaks (unclosed files, connections, contexts)
+   - Race conditions or concurrency issues
+   - Missing nil checks
+   - Inefficient code patterns
+   - Security vulnerabilities
+   - Missing or inadequate logging
+   - Code that violates Go best practices
+
+4. Format your review as:
+
+## Critical Issues (must fix)
+- **File:line** - Description
+  ```go
+  // Current code
+  problematic code here
+  ```
+  **Problem:** What's wrong
+  **Fix:**
+  ```go
+  // Suggested fix
+  corrected code here
+  ```
+
+## Important Issues (should fix)
+- **File:line** - Description...
+
+## Suggestions (nice to have)
+- **File:line** - Description...
+
+## Positive Observations
+- List good practices found in the code
+
+IMPORTANT: Be SPECIFIC. Always include file paths, line numbers, and code snippets. Do NOT provide generic summaries.
 """
         comment = call_llm(prompt)
         print("\n--- LLM Generated PR Comment ---\n", comment)
