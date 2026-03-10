@@ -317,7 +317,7 @@ async def ask(req: QueryRequest):
         qa = get_qa_chain()
         result = qa.run(question)
     else:
-        result = process_input(req.query)
+        result = await process_input(req.query)
 
     return {"response": result}
 

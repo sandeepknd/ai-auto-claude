@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import inspect
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -17,15 +18,19 @@ import re
 from email.mime.text import MIMEText
 import base64
 from gmail_auth import get_gmail_service
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 from datetime import datetime
 import dateparser
 from bs4 import BeautifulSoup
 
 # Import Claude CLI client instead of Claude API
-from claude_cli_client import call_llm
+from claude_cli_client import call_llm, call_claude
 
 import requests
+import asyncio
+import python_weather
+
 # === STEP 1: Define local tools ===
 def add_numbers(numbers):
     print("[DEBUG] add_numbers() called")
@@ -48,13 +53,13 @@ def divide(a, b):
         return "Error: Division by zero"
     return a / b
 
-def get_weather(city):
+async def get_weather(city):
     """
-    Get real-time weather data for a city using wttr.in free weather service.
-    No API key required!
+    Get real-time weather data for a city using python-weather library.
+    Free and open-source - No API key required!
 
     Args:
-        city: City name (e.g., "Paris", "New York", "London")
+        city: City name (e.g., "Paris", "New York", "London", "Bangalore")
 
     Returns:
         Formatted weather information string
@@ -62,74 +67,31 @@ def get_weather(city):
     print(f"[DEBUG] get_weather() called with city={city}")
 
     try:
-        # wttr.in API endpoint (completely free, no API key required!)
-        # Format: wttr.in/{city}?format=j1 for JSON output
-        base_url = f"https://wttr.in/{city}"
+        # Declare the client with metric unit system
+        async with python_weather.Client(unit=python_weather.METRIC) as client:
+            # Fetch weather for the city
+            weather = await client.get(city)
 
-        # Parameters for the API request
-        params = {
-            "format": "j1"  # JSON format
-        }
-
-        # Headers to identify as a script/bot (recommended by wttr.in)
-        headers = {
-            "User-Agent": "curl/7.68.0"
-        }
-
-        # Make the API request
-        response = requests.get(base_url, params=params, headers=headers, timeout=10)
-
-        # Check if request was successful
-        if response.status_code == 404:
-            return f"❌ City '{city}' not found. Please check the spelling."
-
-        if response.status_code != 200:
-            return f"❌ Weather service error (Status: {response.status_code})"
-
-        # Parse the JSON response
-        data = response.json()
-
-        # Extract current weather information
-        current = data["current_condition"][0]
-        location = data["nearest_area"][0]
-
-        # Get location details
-        area_name = location["areaName"][0]["value"]
-        country = location["country"][0]["value"]
-
-        # Get weather details
-        temp_c = current["temp_C"]
-        feels_like_c = current["FeelsLikeC"]
-        humidity = current["humidity"]
-        description = current["weatherDesc"][0]["value"]
-        wind_speed_kmph = current["windspeedKmph"]
-        wind_dir = current["winddir16Point"]
-        pressure = current["pressure"]
-        visibility = current["visibility"]
+        # Get current weather
+        current = weather.temperature
+        description = weather.description
+        humidity = weather.humidity
+        wind_speed = weather.wind_speed
 
         # Format the response
         weather_info = (
-            f"🌤️ Weather in {area_name}, {country}:\n"
-            f"  Temperature: {temp_c}°C (feels like {feels_like_c}°C)\n"
+            f"🌤️ Weather in {city}:\n"
+            f"  Temperature: {current}°C\n"
             f"  Condition: {description}\n"
             f"  Humidity: {humidity}%\n"
-            f"  Wind: {wind_speed_kmph} km/h {wind_dir}\n"
-            f"  Pressure: {pressure} mb\n"
-            f"  Visibility: {visibility} km"
+            f"  Wind Speed: {wind_speed} km/h"
         )
 
         return weather_info
 
-    except requests.exceptions.Timeout:
-        return f"❌ Weather service timeout. Please try again."
-    except requests.exceptions.ConnectionError:
-        return f"❌ Cannot connect to weather service. Check your internet connection."
-    except KeyError as e:
-        print(f"[ERROR] Unexpected weather data format: {str(e)}")
-        return f"❌ City '{city}' not found or weather data unavailable."
     except Exception as e:
         print(f"[ERROR] Weather API error: {str(e)}")
-        return f"❌ Error fetching weather data: {str(e)}"
+        return f"❌ Error fetching weather data for '{city}': {str(e)}"
 
 def analyze_document(path):
     print(f"[DEBUG] analyze_document() called with path={path}")
@@ -342,7 +304,7 @@ tool_registry = {
 # Note: Direct calls now use call_llm from claude_cli_client
 
 # === STEP 4: Parse intent and execute tools manually ===
-def process_input(user_query):
+async def process_input(user_query):
     print("\n[INFO] [process_input] Sending prompt to Claude...")
 
     resolved_date = resolve_relative_dates(user_query)
@@ -366,7 +328,7 @@ def process_input(user_query):
         f" get_events_by_date(date: string) : returns a json dict. Today is {today}. Interpret 'today', 'tomorrow' and all other dates based on {today}. The date parameter should be passed to the tool in YYYY-MM-DD format. If any resolved date is mentioned in parentheses like (Resolved date: 2025-08-09), consider using it as the 'date' parameter. User query can be like - Show the events for August 10, list the events for today, fetch the events for 31st May, Display meetings for next Friday."
         " email_agent(query: string) : sends email to the mentioned recipients with subject and body."
         " mark_email(mail_sub: string, mark_as_read: boolean) : marks an email with subject as read/unread. example user input - Mark the email with subject 'current quarter company highlights' as read."
-        " schedule_meeting_llm(title : string, start_time : string, end_time : string, attendees : list of string, gmeet: bool). It returns meeting details dictionary with fields like title, start_time, end_time, attendees(optional), gmeet(optional).User input example 1 -  Set up a meeting called Project Update on 10 July from 10 AM to 11 AM. Here the parameters are title = Project Update, start_time = 2025-07-10T10:00:00 , end_time = 2025-07-10T10:00:00. Parameters attendees and gmeet are optional. User Input example 2 - Schedule a meeting called team sync on August 31st from 3 PM to 4 PM with attendees alice@example.com and bob@example.com including Meeting link. Here the parameters are title = team sync , start_time = 2025-08-31T15:00:00 , end_time = 2025-08-31T16:00:00, attendees = [\"alice@example.com\", \"bob@example.com\"] , gmeet = true ." 
+        " schedule_meeting_llm(title : string, start_time : string, end_time : string, attendees : list of string, gmeet: bool). It returns meeting details dictionary with fields like title, start_time, end_time, attendees(optional), gmeet(optional).User input example 1 -  Set up a meeting called Project Update on 10 July from 10 AM to 11 AM. Here the parameters are title = Project Update, start_time = 2025-07-10T10:00:00 , end_time = 2025-07-10T10:00:00. Parameters attendees and gmeet are optional. User Input example 2 - Schedule a meeting called team sync on August 31st from 3 PM to 4 PM with attendees alice@example.com and bob@example.com including Meeting link. Here the parameters are title = team sync , start_time = 2025-08-31T15:00:00 , end_time = 2025-08-31T16:00:00, attendees = [\"alice@example.com\", \"bob@example.com\"] , gmeet = true ."
         "\nIf there is no available tool for the respective user input, then just return { \"tool\": null, \"args\": { \"query\": \"...\" } }"
         "\nONLY return a valid JSON. No explanation, no markdown."
     )
@@ -394,7 +356,12 @@ def process_input(user_query):
         args = tool_call["args"]
 
         if tool_name in tool_registry:
-            result = tool_registry[tool_name](**args)
+            func = tool_registry[tool_name]
+            # Check if the function is async and handle accordingly
+            if inspect.iscoroutinefunction(func):
+                result = await func(**args)
+            else:
+                result = func(**args)
             print("✅ Tool {} returned: {}".format(tool_name, result))
             #return f"{result}"
             return result
@@ -422,7 +389,7 @@ if __name__ == "__main__":
         user_input = input("\n🧠 Your query (or 'exit'): ")
         if user_input.strip().lower() in ["exit", "quit"]:
             break
-        result = process_input(user_input)
+        result = asyncio.run(process_input(user_input))
         if result:
             print(f"\n📤 Result: {result}")
     #print(summarize_email("unique test competition"))
